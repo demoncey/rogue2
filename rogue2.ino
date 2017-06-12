@@ -7,19 +7,23 @@ SoftwareSerial bluetooth(RX,TX);
 #define ENA 10
 #define IN1 9
 #define IN2 8
-#define SPEEDA 150
+#define SPEEDA 190
 // motor two
 #define ENB 5
 #define IN3 7
 #define IN4 6
-#define SPEEDB 160
+#define SPEEDB 200
 char old_cmd='3';
 char cmd='3';
+//ultra sonic sensor HC-SR04
+#define TRIG 4
+#define ECHO 3
+
+
+int counter=1;
 
 struct measurment
 {
-   float temp;
-   int hum;
    int distance;
 };
 typedef struct measurment Measurment;
@@ -43,6 +47,9 @@ void setup() {
 
 void loop() {
   reciveMsg();
+  Measurment ms;
+  getMeasurments(ms);
+  
   switch(cmd){
     case '1':
       goForward(); 
@@ -63,8 +70,35 @@ void loop() {
       break; 
   }
   delay(500);
-  bluetooth.println("Status: OK");
+  heartbeatMsg(counter,ms);
 }
+
+void getMeasurments(Measurment &ms){
+  ms.distance=calcDistance();
+}
+
+
+int calcDistance(){
+  long t , distance;
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+  t = pulseIn(ECHO, HIGH);
+  distance = t / 58;
+  return distance;
+}
+
+
+void heartbeatMsg(int &counter,Measurment &ms){
+  if( counter%5 == 0 ){
+    displayMsg("Status: OK");
+    sendMsg("Distance: "+String(ms.distance)+" cm");
+    counter=1;
+  }else{
+    counter++;
+  }
+}
+
 
 void reciveCmd(){
   if(Serial.available()>0){
